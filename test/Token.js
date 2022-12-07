@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const fromWei = (value) => {
   return Number(ethers.utils.formatEther(value));
 }
@@ -8,14 +8,17 @@ const toWei = (value) => {
   return ethers.utils.parseUnits(value.toString(), "ether");
 }
 describe("Token", async function () {
-  let deployer, addr1, addr2, vin
+  let deployer, token
   const name = "token";
   const symbol = "TOKEN";
   const supply = 5* 10**9;
   beforeEach(async function () {
     const TOKEN = await ethers.getContractFactory("Token");
     [deployer, addr1, addr2] = await ethers.getSigners();
-    token = await TOKEN.deploy(name, symbol, toWei(supply));
+    token = await upgrades.deployProxy(TOKEN, [name, symbol, toWei(supply)], {
+      initializer: "initialize",
+    });
+    await token.deployed();
   });
 
   describe("Deployment", function () {

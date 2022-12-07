@@ -10,13 +10,29 @@ const toWei = (value) => {
 describe("Swap", async function () {
     const supplyToken = 5 * 10 ** 9;
     const nativeTokenAddr = "0x0000000000000000000000000000000000000000";
+    let vinh, ice, swap,swapV2, deployer, addr1, addr2
     beforeEach(async function () {
         const TOKEN = await ethers.getContractFactory("Token");
         const SWAP = await ethers.getContractFactory("Swap");
+        const SWAPV2 = await ethers.getContractFactory("SwapV2");
         [deployer, addr1, addr2] = await ethers.getSigners();
-        vinh = await TOKEN.deploy("Vinh", "VINH", toWei(supplyToken));
-        ice = await TOKEN.deploy("Ice", "ICE", toWei(supplyToken));
-        swap = await SWAP.deploy();
+        vinh = await upgrades.deployProxy(TOKEN, ["Vinh", "VINH", toWei(supplyToken)], {
+            initializer: "initialize",
+        });
+        ice = await upgrades.deployProxy(TOKEN, ["Ice", "ICE", toWei(supplyToken)], {
+            initializer: "initialize",
+        });
+        
+        swap = await upgrades.deployProxy(SWAP, [], {
+            initializer: "initialize",
+        });
+
+        await vinh.deployed();
+        await ice.deployed();
+        await swap.deployed();
+
+        // await upgrades.upgradeProxy(swap.address, SWAPV2);
+
         await vinh.connect(deployer).transfer(addr1.address, toWei(5 * 10 ** 6));
         await ice.connect(deployer).transfer(addr1.address, toWei(5 * 10 ** 6));
         await vinh.connect(deployer).approve(swap.address, toWei(supplyToken));
@@ -169,7 +185,7 @@ describe("Swap", async function () {
         })
 
         it("Swap token to token", async function () {
-            const tokenOutAmount =  tokenInAmount * rateVinhToIceValue / (10 ** rateVinhToIceDecimal);
+            const tokenOutAmount = tokenInAmount * rateVinhToIceValue / (10 ** rateVinhToIceDecimal);
             const balanceVinhAddr1Init = Number(fromWei(await vinh.balanceOf(addr1.address)));
             const balanceIceAddr1Init = Number(fromWei(await ice.balanceOf(addr1.address)));
 
@@ -193,7 +209,7 @@ describe("Swap", async function () {
         })
 
         it("Swap token to native token", async function () {
-            const tokenOutAmount =  tokenInAmount * rateVinhToNativeValue / (10 ** rateVinhToNativeDecimal);
+            const tokenOutAmount = tokenInAmount * rateVinhToNativeValue / (10 ** rateVinhToNativeDecimal);
             const balanceVinhAddr1Init = Number(fromWei(await vinh.balanceOf(addr1.address)));
             const balanceEtherAddr1Init = Number(fromWei(await ethers.provider.getBalance(addr1.address))).toFixed(2)
 
@@ -207,7 +223,7 @@ describe("Swap", async function () {
 
             const balanceVinhSwapFinal = Number(fromWei(await vinh.balanceOf(swap.address)));
             const balanceEtherSwapFinal = Number(fromWei(await ethers.provider.getBalance(swap.address))).toFixed(2);
-        
+
             expect(balanceVinhAddr1Init).to.equal(balanceVinhAddr1Final + tokenInAmount)
             expect(Number(balanceEtherAddr1Init)).to.equal(Number(balanceEtherAddr1Final) - Number(tokenOutAmount))
 
@@ -216,23 +232,23 @@ describe("Swap", async function () {
         })
 
         it("Swap native token to token", async function () {
-            const tokenOutAmount =  tokenInAmount * (10 ** rateVinhToNativeDecimal) / (rateVinhToNativeValue);
+            const tokenOutAmount = tokenInAmount * (10 ** rateVinhToNativeDecimal) / (rateVinhToNativeValue);
             const balanceVinhAddr1Init = Number(fromWei(await vinh.balanceOf(addr1.address)));
             const balanceEtherAddr1Init = Number(fromWei(await ethers.provider.getBalance(addr1.address))).toFixed(2)
 
             const balanceVinhSwapInit = Number(fromWei(await vinh.balanceOf(swap.address)));
             const balanceEtherSwapInit = Number(fromWei(await ethers.provider.getBalance(swap.address))).toFixed(2);
 
-            await swap.connect(addr1).swap(nativeTokenAddr, vinh.address, toWei(tokenInAmount), {value: toWei(tokenInAmount)});
+            await swap.connect(addr1).swap(nativeTokenAddr, vinh.address, toWei(tokenInAmount), { value: toWei(tokenInAmount) });
 
             const balanceVinhAddr1Final = Number(fromWei(await vinh.balanceOf(addr1.address)));
             const balanceEtherAddr1Final = Number(fromWei(await ethers.provider.getBalance(addr1.address))).toFixed(2)
             const balanceVinhSwapFinal = Number(fromWei(await vinh.balanceOf(swap.address)));
             const balanceEtherSwapFinal = Number(fromWei(await ethers.provider.getBalance(swap.address))).toFixed(2);
-            
+
             expect(balanceVinhAddr1Init).to.equal(Number(Number(balanceVinhAddr1Final - tokenOutAmount).toFixed(4)))
             expect(Number(balanceEtherAddr1Init)).to.equal(Number(balanceEtherAddr1Final) + tokenInAmount)
-           
+
             expect(balanceVinhSwapInit).to.equal((Number(Number(balanceVinhSwapFinal + tokenOutAmount).toFixed(4))))
             expect(Number(balanceEtherSwapInit)).to.equal(Number(balanceEtherSwapFinal) - tokenInAmount)
         })
@@ -265,8 +281,8 @@ describe("Swap", async function () {
         })
 
         it("Swap native token to token", async function () {
-            await expect(swap.connect(addr1).swap(nativeTokenAddr, ice.address, 0, {value: 0})).to.be.revertedWith("Amount must be greater than 0");
-            await expect(swap.connect(addr1).swap(nativeTokenAddr, vinh.address, toWei(10 * depositAmount), {value: toWei(10 * depositAmount)})).to.be.revertedWith("ERC20: transfer amount exceeds balance");  
+            await expect(swap.connect(addr1).swap(nativeTokenAddr, ice.address, 0, { value: 0 })).to.be.revertedWith("Amount must be greater than 0");
+            await expect(swap.connect(addr1).swap(nativeTokenAddr, vinh.address, toWei(10 * depositAmount), { value: toWei(10 * depositAmount) })).to.be.revertedWith("ERC20: transfer amount exceeds balance");
         })
     })
 })

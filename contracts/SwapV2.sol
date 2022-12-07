@@ -6,10 +6,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Swap is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable  {
+contract SwapV2 is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable  {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     mapping (address => mapping (address => decimal)) public rate;
+    uint x;
 
     struct decimal {
         uint value;
@@ -36,14 +37,14 @@ contract Swap is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable  
         uint8 _digits
     );
 
-    function swap(address _token1, address _token2, uint _amountIn) public payable nonReentrant {
-        require(_token1 !=  _token2, "Token1 must be different than token2");
-        require(_amountIn > 0, "Amount must be greater than 0");
-        uint _amountOut = _amountIn * rate[_token1][_token2].value / ( 10 ** rate[_token1][_token2].digits);
-        _handlerInCome(_token1, _amountIn);
-        _handlerOutCome(_token2, _amountOut);
-        emit SwapToken(msg.sender, _token1, _token2, _amountIn, _amountOut);
-    }
+    // function swap(address _token1, address _token2, uint _amountIn) public payable nonReentrant {
+    //     require(_token1 !=  _token2, "Token1 must be different than token2");
+    //     require(_amountIn > 0, "Amount must be greater than 0");
+    //     uint _amountOut = _amountIn * rate[_token1][_token2].value / ( 10 ** rate[_token1][_token2].digits);
+    //     _handlerInCome(_token1, _amountIn);
+    //     _handlerOutCome(_token2, _amountOut);
+    //     emit SwapToken(msg.sender, _token1, _token2, _amountIn, _amountOut);
+    // }
 
     function setRate(address _token1, address _token2, uint _rate, uint8 _digits) public onlyOwner {
         require(_token1 !=  _token2, "Token1 must be different than token2");
@@ -84,4 +85,6 @@ contract Swap is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable  
     function _isNativeToken(address _address) internal pure returns(bool) {
         return _address == address(0);
     }
+
+
 }

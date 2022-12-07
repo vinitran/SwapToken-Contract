@@ -1,9 +1,17 @@
-pragma solidity ^0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-contract Token is ERC20 {
-    constructor(string memory name, string memory symbol, uint256 supply) ERC20(name, symbol) {
-        _mint(msg.sender, supply);
+contract Token is Initializable, ERC20Upgradeable {
+
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        uint256 _supply
+    ) public initializer {
+        __ERC20_init(_name, _symbol);
+        _mint(msg.sender, _supply);
     }
 }
